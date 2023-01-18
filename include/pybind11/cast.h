@@ -1059,7 +1059,8 @@ make_caster_for_intrinsic<T> &load_type(make_caster_for_intrinsic<T> &conv, cons
                   "Internal error: type_caster should only be used for C++ types");
     if (!conv.load(handle, true)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-        throw cast_error("Unable to cast Python instance to C++ type (#define "
+        throw cast_error("Unable to cast Python instance of type "
+                         + (std::string) str(type::handle_of(handle)) + " to C++ type '?' (#define "
                          "PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
         throw cast_error("Unable to cast Python instance of type "
@@ -1127,7 +1128,8 @@ detail::enable_if_t<!detail::move_never<T>::value, T> move(object &&obj) {
     if (obj.ref_count() > 1) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
         throw cast_error(
-            "Unable to cast Python instance to C++ rvalue: instance has multiple references"
+            "Unable to cast Python " + (std::string) str(type::handle_of(obj))
+            + " instance to C++ rvalue: instance has multiple references"
             " (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 #else
         throw cast_error("Unable to move from Python " + (std::string) str(type::handle_of(obj))
@@ -1237,8 +1239,8 @@ PYBIND11_NAMESPACE_END(detail)
 // The overloads could coexist, i.e. the #if is not strictly speaking needed,
 // but it is an easy minor optimization.
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-inline cast_error cast_error_unable_to_convert_call_arg() {
-    return cast_error("Unable to convert call argument to Python object (#define "
+inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name) {
+    return cast_error("Unable to convert call argument '" + name + "' to Python object (#define "
                       "PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)");
 }
 #else
@@ -1262,7 +1264,7 @@ tuple make_tuple(Args &&...args_) {
     for (size_t i = 0; i < args.size(); i++) {
         if (!args[i]) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg();
+            throw cast_error_unable_to_convert_call_arg(std::to_string(i));
 #else
             std::array<std::string, size> argtypes{{type_id<Args>()...}};
             throw cast_error_unable_to_convert_call_arg(std::to_string(i), argtypes[i]);
@@ -1552,7 +1554,7 @@ private:
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg();
+            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()));
 #else
             throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
                                                         type_id<T>());
@@ -1584,7 +1586,7 @@ private:
         }
         if (!a.value) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg();
+            throw cast_error_unable_to_convert_call_arg(a.name);
 #else
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
